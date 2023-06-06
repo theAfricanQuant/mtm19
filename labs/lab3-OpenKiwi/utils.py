@@ -43,9 +43,7 @@ def download_kiwi(url, directory="trained_models"):
     print("Checking if file already downloaded", file=sys.stderr)
     download_file = False
 
-    if filepath.exists() or filepath.with_suffix('').exists():
-        pass
-    else:
+    if not filepath.exists() and not filepath.with_suffix('').exists():
         download_file = True
 
     if download_file:
@@ -109,7 +107,7 @@ def printmd(text):
     display(Markdown(text))
     
 def make_color(text, color):
-    start = "<span style='color:" + color + "'>"
+    start = f"<span style='color:{color}'>"
     return start + text + "</span>"
 
 
@@ -119,7 +117,7 @@ def get_color(bad_prob, threshold):
 def highlight(text_bad_prob):
     text, bad_prob, threshold = text_bad_prob
     if bad_prob >= threshold:
-        text = '*' + text + '*'
+        text = f'*{text}*'
     return make_color(text, get_color(bad_prob, threshold))
 
 
@@ -129,14 +127,19 @@ def KiwiViz(model, source, mt, threshold=0.5):
     model_out = model.predict({const.SOURCE: [source.lower()], const.TARGET: [mt.lower()]})
     bad_probs = model_out[const.TARGET_TAGS][0]
     gap_probs = model_out[const.GAP_TAGS][0]
-    highlight_words = list(map(highlight, zip(mt.split(), bad_probs, [threshold for b in bad_probs])))
+    highlight_words = list(
+        map(
+            highlight,
+            zip(mt.split(), bad_probs, [threshold for _ in bad_probs]),
+        )
+    )
     visualization = ''
     BAD_GAP = make_color('_', 'red')
     for gap_prob, word in zip(gap_probs[:-1], highlight_words):
-        visualization += ' ' if gap_prob < threshold else BAD_GAP + ' '
+        visualization += ' ' if gap_prob < threshold else f'{BAD_GAP} '
         visualization += word
-    visualization += '' if gap_probs[-1] < threshold else ' ' + BAD_GAP
-    print('HTER: {}'.format(model_out[const.SENTENCE_SCORES][0]))
+    visualization += '' if gap_probs[-1] < threshold else f' {BAD_GAP}'
+    print(f'HTER: {model_out[const.SENTENCE_SCORES][0]}')
 
     printmd(visualization)
 
